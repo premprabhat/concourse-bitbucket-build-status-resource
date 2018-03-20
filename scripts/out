@@ -1,0 +1,104 @@
+#!/usr/bin/env python
+
+import subprocess
+import os
+import sys
+import json
+from bitbucket import (
+    json_pp, err, request_access_token, set_build_status, BitbucketException
+)
+
+j = json.loads(sys.stdin.read())
+
+debug = j['source'].get('debug', False)
+
+if debug:
+    err("--DEBUG MODE--")
+
+# Configuration vars
+repo = j['source']['repo']
+url = 'https://api.bitbucket.org/2.0/repositories/{repo}/' \
+      'commit/{commit}/build'
+client_id = j['source']['client_id']
+secret = j['source']['secret']
+
+state = j['params']['state']
+artifact_dir = "%s/%s" % (sys.argv[1], j['params']['repo'])
+
+concourse_url = j['source']['url']
+
+# The build status can only be one of three things
+if state not in ['INPROGRESS', 'SUCCESSFUL', 'FAILED']:
+    err("Invalid build status, must be: INPROGRESS, SUCCESSFUL, or FAILED")
+    exit(1)
+
+# Try and find out if it's a git or hg repo.
+if os.path.exists(os.path.join(artifact_dir, '.hg')):
+    repo_type = 'hg'
+elif os.path.exists(os.path.join(artifact_dir, '.git')):
+    repo_type = 'git'
+else:
+    repo_type = ''
+    err("Cannot detect a repo.")
+    exit(1)
+
+if repo_type == 'git':
+    commit_sha = subprocess.check_output(
+            ['git', '-C', artifact_dir, 'rev-parse', 'HEAD']
+    ).strip()
+else:
+    commit_sha = subprocess.check_output(
+        ['hg', '-R', artifact_dir, 'log', '--rev', 'tip', '--template', '{node}']
+    ).strip()
+
+if debug:
+    err("Commit: " + str(commit_sha))
+
+# use build_id because it will link directly to the build (and thus works for pipelines not belonging to the main team)
+build_url = "{url}/builds/{buildid}".format(
+    url=os.environ['ATC_EXTERNAL_URL'],
+    buildid=os.environ['BUILD_ID']
+)
+pipeline_url = "{url}/builds/{buildid}".format(
+    url=concourse_url,
+    buildid=os.environ['BUILD_ID']
+)
+
+if debug:
+    err(build_url)
+    err(pipeline_url)
+
+# Do the update.
+try:
+    access_token = request_access_token(client_id, secret, debug)
+
+    # provide default values as these env vars will be unset in one-off builds
+    # see also http://concourse.ci/implementing-resources.html
+    pipeline = os.environ.get('BUILD_PIPELINE_NAME', '_pipeline_')
+    job = os.environ.get('BUILD_JOB_NAME', '_job_'),
+    build_name = os.environ.get('BUILD_NAME', '_build#_') # name within job
+    build_id = os.environ['BUILD_ID'] # internal, unique build id in concurse
+    
+    slug = "{0}".format(pipeline)
+    set_build_status(
+        repo=repo,
+        commit_sha=commit_sha,
+        state=state,
+        key=slug,
+        name=slug,
+        url=pipeline_url,
+        description="Login to team `pull-requests` to view Concourse build {0}".format(build_id),
+        access_token=access_token,
+        debug=debug
+    )
+
+except BitbucketException as e:
+    err(str(e))
+    exit(1)
+
+status_js = {"version": {"ref": commit_sha}}
+
+if debug:
+    err("Returning to concourse:\n" + json_pp(status_js))
+
+print(json.dumps(status_js))

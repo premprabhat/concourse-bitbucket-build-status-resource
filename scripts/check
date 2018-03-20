@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+
+import json
+import sys
+import bitbucket
+from datetime import datetime
+
+sys.stdout.write(json.dumps([{
+    'version': bitbucket.get_version()
+}]))

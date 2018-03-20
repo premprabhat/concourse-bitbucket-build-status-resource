@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+
+import json
+import sys
+
+j = json.loads("".join(sys.stdin.readlines()))
+
+version = j['version']
+
+result = {
+    "version": version
+}
+
+sys.stdout.write(json.dumps(result))
