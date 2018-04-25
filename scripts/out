@@ -88,7 +88,7 @@ try:
         key=slug,
         name=slug,
         url=pipeline_url,
-        description="Login to team `{}` to view Concourse build {0}".format(team, build_id),
+        description="Login to team `{0}` to view Concourse build {1}".format(team, build_id),
         access_token=access_token,
         debug=debug
     )
