@@ -26,6 +26,7 @@ state = j['params']['state']
 artifact_dir = "%s/%s" % (sys.argv[1], j['params']['repo'])
 
 concourse_url = j['source']['url']
+team = j['source'].get('team','pull-requests')
 
 # The build status can only be one of three things
 if state not in ['INPROGRESS', 'SUCCESSFUL', 'FAILED']:
@@ -87,7 +88,7 @@ try:
         key=slug,
         name=slug,
         url=pipeline_url,
-        description="Login to team `pull-requests` to view Concourse build {0}".format(build_id),
+        description="Login to team `{}` to view Concourse build {0}".format(team, build_id),
         access_token=access_token,
         debug=debug
     )
