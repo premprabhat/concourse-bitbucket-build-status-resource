@@ -59,6 +59,11 @@ def set_build_status(repo, commit_sha, state, key, name, url, description,
         commit=commit_sha
     )
 
+    # `key` cannot be greater than 40 characters or else bitbucket
+    # returns a 400 error
+    if len(key) >= 40:
+        key = '{}{}'.format(key[0:35], '...')
+
     data = {
         "state": state,
         "key": key,
