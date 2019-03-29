@@ -74,8 +74,8 @@ def set_build_status(repo, commit_sha, state, key, name, url, description,
     )
 
     if debug:
-        err("Request result: " + str(r))
-
+        err("Request result: " + str(r) + str(r.content))
+        err("Data: " + str(data))
 
     # Check status code. Bitbucket brakes rest a bit  by returning 200 or 201
     # depending on it's the first time the status is posted.
