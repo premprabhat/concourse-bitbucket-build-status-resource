@@ -80,7 +80,7 @@ try:
     build_name = os.environ.get('BUILD_NAME', '_build#_') # name within job
     build_id = os.environ['BUILD_ID'] # internal, unique build id in concurse
     
-    slug = "{0}".format(job)
+    slug = "{0}".format(pipeline)
     set_build_status(
         repo=repo,
         commit_sha=commit_sha,
